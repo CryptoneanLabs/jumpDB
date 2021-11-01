@@ -41,6 +41,7 @@ from contextlib import ExitStack
 
 TOMBSTONE = str(uuid.uuid5(uuid.NAMESPACE_OID, 'TOMBSTONE'))
 SEGMENT_DIR = "sst_data"
+FILE_EXTENSION = 'txt'
 
 
 def make_new_segment(persist=False, base_path=None):
@@ -105,12 +106,12 @@ def chain_segments(*segments):
 def make_persistent_segment(base_path):
     if not os.path.exists(base_path):
         os.makedirs(base_path)
-    filepath = os.path.join(base_path, str(time.time()) + ".txt")
+    filepath = os.path.join(base_path, str(time.time()) + "." + FILE_EXTENSION)
     return Segment(filepath)
 
 
 def make_temp_segment():
-    fd, path = tempfile.mkstemp(prefix=str(time.time()), suffix="txt")
+    fd, path = tempfile.mkstemp(prefix=str(time.time()), suffix=FILE_EXTENSION)
     return Segment(path=path, fd=fd)
 
 
@@ -142,7 +143,7 @@ class Segment:
 
     def _extract_timestamp(self):
         # extract float representing the time of segment creation
-        str_timestamp = re.findall("[+-]?\d+\.\d+", self.path)[0]
+        str_timestamp = re.findall(r"[+-]?\d+\.\d+", self.path)[0]
         return float(str_timestamp)
 
     @property
@@ -258,7 +259,7 @@ class SegmentEntry:
 
 
 class DB:
-    def __init__(self, max_inmemory_size=1000, sparse_offset=300, segment_size=50,
+    def __init__(self, max_inmemory_size=1000, sparse_offset=500, segment_size=1000,
                  persist_segments=True,
                  path=None,
                  merge_threshold=3):
@@ -286,6 +287,12 @@ class DB:
         if path:
             self._base_path = path
             self._scan_path_for_segments(path)
+
+    def _cleanup(self):
+        filelist = [ f for f in os.listdir(self._base_path) if (f.endswith("." + FILE_EXTENSION) 
+                                                                and (os.path.getsize(f) == 0)) ]
+        for f in filelist:
+            os.remove(os.path.join(self._base_path, f))
 
     def _update_sparse_memory_index(self):
         """
@@ -382,6 +389,9 @@ class DB:
 
         self._bloom_filter.add(key)
         self._mem_table[key] = value
+
+    def flush(self):
+        segment = self._write_to_segment() 
 
     def __getitem__(self, item):
         value = self.get(item)

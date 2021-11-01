@@ -194,3 +194,49 @@ def test_db_for_large_dataset():
         assert db[k] == v
     for (k, v) in kv_pairs[25:]:
         assert k not in db
+
+def test_db_for_explicit_flushing_to_disk():
+    """
+    write segment to disk even if below segment_size
+    read data from disk
+    """
+    import shutil
+
+    segment_1 = make_new_segment(persist=True, base_path="sst_data")
+    segment_1_entries = [("k_01", "v_01"), ("k_02", "v_02")]
+    with segment_1.open("w"):
+        for e in segment_1_entries:
+            segment_1.add_entry(e)
+    try:
+        current_test_path = os.path.abspath(
+            os.path.join(os.getcwd(), "sst_data"))
+        
+        db = DB(path=current_test_path, segment_size=3)
+        assert db['k_01'] == "v_01"
+        db.flush()
+        # read last data
+        print(segment_1.path)
+        db2 = DB(path=current_test_path, segment_size=5)
+        assert db2['k_02'] == "v_02"
+    finally:
+        # os.remove(segment_1.path)
+        filelist = [ f for f in os.listdir('sst_data') if f.endswith(".txt") ]
+        for f in filelist:
+            os.remove(os.path.join('sst_data', f))
+
+def test_db_for_very_large_datasets_to_disk():
+    try:
+        db = DB(persist_segments=True, 
+                segment_size=1000,
+                path="sst_data2")
+        kv_pairs = [("k" + str(i), "v" + str(i)) for i in range(10000)]
+        for (k, v) in kv_pairs:
+            db[k] = v
+        # db.flush()
+        assert db['k8888'] == "v8888"
+    finally:
+        print('done!')
+        # filelist = [ f for f in os.listdir('sst_data2') if f.endswith(".txt") ]
+        # for f in filelist:
+        #     os.remove(os.path.join('sst_data2', f))
+    
