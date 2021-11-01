@@ -40,8 +40,8 @@ from sortedcontainers import SortedDict
 from contextlib import ExitStack
 
 TOMBSTONE = str(uuid.uuid5(uuid.NAMESPACE_OID, 'TOMBSTONE'))
-SEGMENT_DIR = "sst_data"
-FILE_EXTENSION = 'txt'
+SEGMENT_DIR = "_data"
+FILE_EXTENSION = 'dat'
 
 
 def make_new_segment(persist=False, base_path=None):

@@ -220,7 +220,7 @@ def test_db_for_explicit_flushing_to_disk():
         assert db2['k_02'] == "v_02"
     finally:
         # os.remove(segment_1.path)
-        filelist = [ f for f in os.listdir('sst_data') if f.endswith(".txt") ]
+        filelist = [ f for f in os.listdir('sst_data') if f.endswith(".dat") ]
         for f in filelist:
             os.remove(os.path.join('sst_data', f))
 
@@ -234,9 +234,10 @@ def test_db_for_very_large_datasets_to_disk():
             db[k] = v
         # db.flush()
         assert db['k8888'] == "v8888"
+        assert len(db) == 10000
     finally:
         print('done!')
-        # filelist = [ f for f in os.listdir('sst_data2') if f.endswith(".txt") ]
-        # for f in filelist:
-        #     os.remove(os.path.join('sst_data2', f))
+        filelist = [ f for f in os.listdir('sst_data2') if f.endswith(".dat") ]
+        for f in filelist:
+            os.remove(os.path.join('sst_data2', f))
     
