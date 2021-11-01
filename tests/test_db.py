@@ -214,8 +214,8 @@ def test_db_for_explicit_flushing_to_disk():
         db = DB(path=current_test_path, segment_size=3)
         assert db['k_01'] == "v_01"
         db.flush()
+        
         # read last data
-        print(segment_1.path)
         db2 = DB(path=current_test_path, segment_size=5)
         assert db2['k_02'] == "v_02"
     finally:
@@ -226,15 +226,31 @@ def test_db_for_explicit_flushing_to_disk():
 
 def test_db_for_very_large_datasets_to_disk():
     try:
+        my_range = 100000
         db = DB(persist_segments=True, 
-                segment_size=1000,
+                segment_size=10000,
+                max_inmemory_size=30000,
+                sparse_offset=1000,
                 path="sst_data2")
-        kv_pairs = [("k" + str(i), "v" + str(i)) for i in range(10000)]
+        kv_pairs = [("k" + str(i), "v" + str(i)) for i in range(my_range)]
         for (k, v) in kv_pairs:
             db[k] = v
-        # db.flush()
+        db.flush()
         assert db['k8888'] == "v8888"
-        assert len(db) == 10000
+        assert len(db) == my_range
+    finally:
+        print('done!')
+
+def test_db_for_very_large_datasets_retrieval():
+    try:
+        my_range = 100000
+        db = DB(persist_segments=True, 
+                segment_size=10000,
+                max_inmemory_size=30000,
+                sparse_offset=1000,
+                path="sst_data2")
+        assert db['k8888'] == "v8888"
+        assert len(db) == my_range
     finally:
         print('done!')
         filelist = [ f for f in os.listdir('sst_data2') if f.endswith(".dat") ]

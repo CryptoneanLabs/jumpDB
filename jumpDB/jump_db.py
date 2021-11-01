@@ -181,6 +181,7 @@ class Segment:
     def entries(self):
         while not self.reached_eof():
             entry = self.fd.readline()
+            self.size += 1
             yield SegmentEntry.from_dict(json.loads(entry))
 
     def offsets_and_entries(self):
@@ -298,9 +299,7 @@ class DB:
         only be called after segments have been merged and stored internally.
         """
         count = 0
-        self._size = 0
         for segment in self._immutable_segments:
-            self._size += len(segment)
             with segment.open("r"):
                 for offset, entry in segment.offsets_and_entries():
                     if count % self.sparse_offset == 0:
@@ -312,9 +311,11 @@ class DB:
                     count += 1
 
     def _update_bloom_filter(self):
+        self._size = 0
         for segment in self._immutable_segments:
             with segment.open("r"):
                 for entry in segment.entries():
+                    self._size += 1
                     self._bloom_filter.add(entry.key)
 
     def _scan_path_for_segments(self, path):
