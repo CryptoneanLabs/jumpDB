@@ -377,7 +377,8 @@ class DB:
 
         if self._mem_table.capacity_reached() and key not in self._bloom_filter:
             segment = self._write_to_segment()
-            self._immutable_segments.append(segment)
+            if (segment):
+                self._immutable_segments.append(segment)
             if len(self._immutable_segments) >= self._merge_threshold:
                 merged_segments = self.merge(*self._immutable_segments)
                 self._clear_segment_list()
@@ -393,7 +394,7 @@ class DB:
         self._size += 1
 
     def flush(self):
-        segment = self._write_to_segment() 
+        self._write_to_segment() 
 
     def __getitem__(self, item):
         value = self.get(item)
@@ -446,18 +447,20 @@ class DB:
 
         :return: Segment with contents of the memtable
         """
-        segment = make_new_segment(self.persist, self._base_path)
-        with segment.open("w") as segment:
-            count = 0
-            for (k, v) in self._mem_table:
-                offset = segment.add_entry((k, v))
-                if count % self.sparse_offset == 0:
-                    if k not in self._sparse_memory_index:
-                        self._sparse_memory_index[k] = []
-                    self._sparse_memory_index[k].append(KeyDirEntry(offset=offset, segment=segment))
-                count += 1
+        if (len(self._mem_table) > 0):
+            segment = make_new_segment(self.persist, self._base_path)
+            with segment.open("w") as segment:
+                count = 0
+                for (k, v) in self._mem_table:
+                    offset = segment.add_entry((k, v))
+                    if count % self.sparse_offset == 0:
+                        if k not in self._sparse_memory_index:
+                            self._sparse_memory_index[k] = []
+                        self._sparse_memory_index[k].append(KeyDirEntry(offset=offset, segment=segment))
+                    count += 1
 
-        return segment
+            return segment
+        return False
 
 
 class MemTable:
