@@ -256,4 +256,26 @@ def test_db_for_very_large_datasets_retrieval():
         filelist = [ f for f in os.listdir('sst_data2') if f.endswith(".dat") ]
         for f in filelist:
             os.remove(os.path.join('sst_data2', f))
+
+def test_db_for_very_large_keys_and_datasets():
+    import hashlib
+
+    try:
+        my_range = 10000
+        db = DB(persist_segments=True, 
+                segment_size=10000,
+                max_inmemory_size=30000,
+                sparse_offset=1000,
+                path="sst_data2")
+        kv_pairs = [( (str(i).zfill(19)+'-'+hashlib.md5(str(i).zfill(19).encode()).hexdigest()), "v" + str(i)) for i in range(my_range)]
+        for (k, v) in kv_pairs:
+            db[k] = v
+        db.flush()
+        assert db['0000000000000004105-b6e25c122b548cbdd3b4f342dfcf6aad'] == "v4105"
+        assert len(db) == my_range
+    finally:
+        print('done!')
+        filelist = [ f for f in os.listdir('sst_data2') if f.endswith(".dat") ]
+        for f in filelist:
+            os.remove(os.path.join('sst_data2', f))
     
