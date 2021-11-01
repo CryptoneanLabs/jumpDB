@@ -283,16 +283,14 @@ class DB:
         self._bloom_filter = ScalableBloomFilter(mode=ScalableBloomFilter.SMALL_SET_GROWTH)
         self.persist = persist_segments
         self._merge_threshold = merge_threshold
+        self._size = 0 #total size of records in DB
         self._base_path = None
         if path:
             self._base_path = path
             self._scan_path_for_segments(path)
 
-    def _cleanup(self):
-        filelist = [ f for f in os.listdir(self._base_path) if (f.endswith("." + FILE_EXTENSION) 
-                                                                and (os.path.getsize(f) == 0)) ]
-        for f in filelist:
-            os.remove(os.path.join(self._base_path, f))
+    def __len__(self):
+        return self._size
 
     def _update_sparse_memory_index(self):
         """
@@ -300,7 +298,9 @@ class DB:
         only be called after segments have been merged and stored internally.
         """
         count = 0
+        self._size = 0
         for segment in self._immutable_segments:
+            self._size += len(segment)
             with segment.open("r"):
                 for offset, entry in segment.offsets_and_entries():
                     if count % self.sparse_offset == 0:
@@ -389,6 +389,7 @@ class DB:
 
         self._bloom_filter.add(key)
         self._mem_table[key] = value
+        self._size += 1
 
     def flush(self):
         segment = self._write_to_segment() 
