@@ -278,4 +278,23 @@ def test_db_for_very_large_keys_and_datasets():
         filelist = [ f for f in os.listdir('sst_data3') if f.endswith(".dat") ]
         for f in filelist:
             os.remove(os.path.join('sst_data3', f))
+
+def test_db_for_double_flush():
+    import hashlib
+
+    try:
+        my_range = 10000
+        db = DB(persist_segments=True, 
+                segment_size=10000,
+                max_inmemory_size=30000,
+                sparse_offset=1000,
+                path="sst_data3")
+        db['0000000000000000001-b6e25c122b548cbdd3b4f342dfcf6aad'] = "v1"
+        db.flush()
+        db.flush()
+        assert db['0000000000000000001-b6e25c122b548cbdd3b4f342dfcf6aad'] == "v1"
+        assert len(db) == 1
+    finally:
+        print('done!')
+        
     

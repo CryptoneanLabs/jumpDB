@@ -286,6 +286,7 @@ class DB:
         self._merge_threshold = merge_threshold
         self._size = 0 #total size of records in DB
         self._base_path = None
+        self._last_action = ''
         if path:
             self._base_path = path
             self._scan_path_for_segments(path)
@@ -334,6 +335,7 @@ class DB:
         self._immutable_segments = [Segment(path) for path in sorted(storage)]
         self._update_sparse_memory_index()
         self._update_bloom_filter()
+        self._last_action = 'init'
 
     def segment_count(self):
         return len(self._immutable_segments)
@@ -395,9 +397,12 @@ class DB:
         self._bloom_filter.add(key)
         self._mem_table[key] = value
         self._size += 1
+        self._last_action = 'insert'
 
     def flush(self):
-        segment = self._write_to_segment() 
+        if (self._last_action != 'flush'):
+            segment = self._write_to_segment() 
+            self._last_action = 'flush'
 
     def __getitem__(self, item):
         value = self.get(item)
@@ -416,6 +421,7 @@ class DB:
     def __delitem__(self, key):
         if key in self:
             self._mem_table[key] = TOMBSTONE
+            self._last_action = 'delete'
         else:
             raise Exception(f"{key} does not exist in the db; thus, cannot delete")
 
@@ -441,6 +447,7 @@ class DB:
                 merged_segments.append(new_segment)
 
         merge_into(make_new_segment(self.persist, self._base_path), chain_segments(*segments))
+        self._last_action = 'merge'
         return merged_segments[::-1]
 
     def _write_to_segment(self):
