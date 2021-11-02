@@ -266,7 +266,7 @@ def test_db_for_very_large_keys_and_datasets():
                 segment_size=10000,
                 max_inmemory_size=30000,
                 sparse_offset=1000,
-                path="sst_data2")
+                path="sst_data3")
         kv_pairs = [( (str(i).zfill(19)+'-'+hashlib.md5(str(i).zfill(19).encode()).hexdigest()), "v" + str(i)) for i in range(my_range)]
         for (k, v) in kv_pairs:
             db[k] = v
@@ -275,7 +275,7 @@ def test_db_for_very_large_keys_and_datasets():
         assert len(db) == my_range
     finally:
         print('done!')
-        filelist = [ f for f in os.listdir('sst_data2') if f.endswith(".dat") ]
+        filelist = [ f for f in os.listdir('sst_data3') if f.endswith(".dat") ]
         for f in filelist:
-            os.remove(os.path.join('sst_data2', f))
+            os.remove(os.path.join('sst_data3', f))
     
