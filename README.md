@@ -38,6 +38,8 @@ assert "k2" not in db
 
 * `contains(key)` => Checks if the given key is present in the db 
 
+* `flush()` => Explicitly write data to disk
+
 
 
 ### Design & Implementation 
